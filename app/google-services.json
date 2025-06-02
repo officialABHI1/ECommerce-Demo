@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "264874897035",
+    "project_id": "ecommclevertapsdkdemo",
+    "storage_bucket": "ecommclevertapsdkdemo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:264874897035:android:0e89f377e371e8175aee8e",
+        "android_client_info": {
+          "package_name": "com.asrivas.ecommclevertapsdkdemo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi9WVw8bwza8slN2pJhQOpuqKUIQ4RXOs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
