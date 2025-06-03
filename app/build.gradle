@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace 'com.asrivas.ecommclevertapsdkdemo'
-    compileSdk 35
+    compileSdk 35 // [cite: 83]
 
     defaultConfig {
         applicationId "com.asrivas.ecommclevertapsdkdemo"
-        minSdk 24
-        targetSdk 35
+        minSdk 24 // [cite: 73, 83]
+        targetSdk 35 // [cite: 83]
         versionCode 1
         versionName "1.0"
 
@@ -37,4 +37,11 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+
+    // CleverTap SDK - Please check for the latest version from CleverTap documentation
+    implementation 'com.clevertap.android:clevertap-android-sdk:7.4.0'
+
+    // Firebase Messaging for Push Notifications (needed for CleverTap push)
+    // Please check for the latest version from Firebase documentation
+    implementation 'com.google.firebase:firebase-messaging:24.0.0'
 }

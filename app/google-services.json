@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "264874897035",
-    "project_id": "ecommclevertapsdkdemo",
-    "storage_bucket": "ecommclevertapsdkdemo.firebasestorage.app"
+    "project_number": "92273104568",
+    "project_id": "ecommclevertapsdkdemo-fc0de",
+    "storage_bucket": "ecommclevertapsdkdemo-fc0de.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:264874897035:android:0e89f377e371e8175aee8e",
+        "mobilesdk_app_id": "1:92273104568:android:58468668a82218c5c9064d",
         "android_client_info": {
           "package_name": "com.asrivas.ecommclevertapsdkdemo"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCi9WVw8bwza8slN2pJhQOpuqKUIQ4RXOs"
+          "current_key": "AIzaSyBNkeR39gLv0P-RQfZbu7T9wGZ-GRRxGEE"
         }
       ],
       "services": {
