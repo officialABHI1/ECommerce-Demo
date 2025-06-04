@@ -4,7 +4,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log; // Ensure Log is imported
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonLogin;
     private Button buttonRecordTestEvent;
     private Button buttonRequestPushPermission;
+    private Button buttonTriggerInApp; // Declare the new button
 
     private ActivityResultLauncher<String> requestPermissionLauncher;
 
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
         buttonLogin = findViewById(R.id.buttonLogin);
         buttonRecordTestEvent = findViewById(R.id.buttonRecordTestEvent);
         buttonRequestPushPermission = findViewById(R.id.buttonRequestPushPermission);
+        buttonTriggerInApp = findViewById(R.id.buttonTriggerInApp); // Initialize the new button
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -62,14 +64,10 @@ public class MainActivity extends AppCompatActivity {
                 registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                     if (isGranted) {
                         Toast.makeText(this, "Push Notifications permission granted.", Toast.LENGTH_SHORT).show();
-                        updateCleverTapPushSubscription(true); // Update CleverTap profile
-                        // Optionally, re-register token if needed, though MyFirebaseMessagingService handles new tokens
-                        // if (clevertapDefaultInstance != null) {
-                        //    clevertapDefaultInstance.pushFcmRegistrationId(null, true);
-                        // }
+                        updateCleverTapPushSubscription(true);
                     } else {
                         Toast.makeText(this, "Push Notifications permission denied.", Toast.LENGTH_SHORT).show();
-                        updateCleverTapPushSubscription(false); // Optionally update if denied
+                        updateCleverTapPushSubscription(false);
                     }
                 });
 
@@ -85,6 +83,11 @@ public class MainActivity extends AppCompatActivity {
 
         if (buttonRequestPushPermission != null) {
             buttonRequestPushPermission.setOnClickListener(v -> requestPushNotificationPermission());
+        }
+
+        // Set OnClickListener for the new "Trigger In-App Event" button
+        if (buttonTriggerInApp != null) {
+            buttonTriggerInApp.setOnClickListener(v -> triggerInAppEvent());
         }
     }
 
@@ -123,7 +126,6 @@ public class MainActivity extends AppCompatActivity {
             if (!phone.isEmpty()) profileUpdate.put("Phone", phone);
             profileUpdate.put("UserType", "New Hire");
             profileUpdate.put("Status", "Active");
-            // REMOVED: profileUpdate.put("MSG-push", true); from here
             clevertapDefaultInstance.onUserLogin(profileUpdate);
             Toast.makeText(this, "Login Profile Pushed", Toast.LENGTH_LONG).show();
             System.out.println("CleverTap: Login Profile Pushed: " + profileUpdate.toString());
@@ -151,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
                     PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Push Notifications permission already granted.", Toast.LENGTH_SHORT).show();
-                updateCleverTapPushSubscription(true); // Update CleverTap profile if already granted
+                updateCleverTapPushSubscription(true);
             } else if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
                 Toast.makeText(this, "Please grant notification permission to receive updates.", Toast.LENGTH_LONG).show();
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
@@ -160,13 +162,10 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             Toast.makeText(this, "Push Notifications permission not required for this Android version. Assuming subscribed.", Toast.LENGTH_LONG).show();
-            // For pre-Tiramisu, permission is granted by default at install time.
-            // So, we can consider them subscribed if they haven't explicitly unsubscribed via other means.
             updateCleverTapPushSubscription(true);
         }
     }
 
-    // New method to update CleverTap profile for push subscription
     private void updateCleverTapPushSubscription(boolean subscribed) {
         if (clevertapDefaultInstance != null) {
             HashMap<String, Object> profileUpdate = new HashMap<>();
@@ -175,6 +174,22 @@ public class MainActivity extends AppCompatActivity {
             Log.d("MainActivity", "CleverTap profile updated with MSG-push: " + subscribed);
         } else {
             Log.w("MainActivity", "CleverTap instance is null. Cannot update MSG-push status.");
+        }
+    }
+
+    // New method to handle "Trigger In-App Event"
+    private void triggerInAppEvent() {
+        if (clevertapDefaultInstance != null) {
+            // Raise an event named "ShowInApp" as per PDF
+            // This event does not have properties specified in the PDF for this particular trigger
+            clevertapDefaultInstance.pushEvent("ShowInApp");
+
+            // Feedback (not specified in PDF, but good for testing)
+            Toast.makeText(this, "'ShowInApp' event triggered", Toast.LENGTH_LONG).show();
+            System.out.println("CleverTap: Pushed 'ShowInApp' event.");
+        } else {
+            Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
+            System.out.println("CleverTap: Default instance is null, cannot push 'ShowInApp' event.");
         }
     }
 }

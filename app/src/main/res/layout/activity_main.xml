@@ -71,4 +71,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/buttonRecordTestEvent" />
 
+    <Button
+        android:id="@+id/buttonTriggerInApp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Trigger In-App Event"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/buttonRequestPushPermission" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
