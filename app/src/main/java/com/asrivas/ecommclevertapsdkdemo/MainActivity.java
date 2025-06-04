@@ -1,19 +1,20 @@
 package com.asrivas.ecommclevertapsdkdemo;
 
-import android.Manifest; // Import Manifest
-import android.content.pm.PackageManager; // Import PackageManager
-import android.os.Build; // Import Build
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log; // Ensure Log is imported
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.activity.result.ActivityResultLauncher; // Import ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts; // Import ActivityResultContracts
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat; // Import ContextCompat
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -28,9 +29,8 @@ public class MainActivity extends AppCompatActivity {
     private EditText editTextName, editTextEmail, editTextPhone;
     private Button buttonLogin;
     private Button buttonRecordTestEvent;
-    private Button buttonRequestPushPermission; // Declare the new button
+    private Button buttonRequestPushPermission;
 
-    // Declare the ActivityResultLauncher for permission request
     private ActivityResultLauncher<String> requestPermissionLauncher;
 
     @Override
@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         editTextPhone = findViewById(R.id.editTextPhone);
         buttonLogin = findViewById(R.id.buttonLogin);
         buttonRecordTestEvent = findViewById(R.id.buttonRecordTestEvent);
-        buttonRequestPushPermission = findViewById(R.id.buttonRequestPushPermission); // Initialize the new button
+        buttonRequestPushPermission = findViewById(R.id.buttonRequestPushPermission);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -58,17 +58,18 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Initialize the ActivityResultLauncher
-        // This should be initialized in onCreate or as a field initializer
         requestPermissionLauncher =
                 registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                     if (isGranted) {
                         Toast.makeText(this, "Push Notifications permission granted.", Toast.LENGTH_SHORT).show();
-                        // You can re-pass the FCM token to CleverTap if needed, though SDK usually handles it.
-                        // Example: if (clevertapDefaultInstance != null) { clevertapDefaultInstance.pushFcmRegistrationId(yourFcmToken,true); }
-                        // For now, the toast is sufficient as per assignment focus on permission request.
+                        updateCleverTapPushSubscription(true); // Update CleverTap profile
+                        // Optionally, re-register token if needed, though MyFirebaseMessagingService handles new tokens
+                        // if (clevertapDefaultInstance != null) {
+                        //    clevertapDefaultInstance.pushFcmRegistrationId(null, true);
+                        // }
                     } else {
                         Toast.makeText(this, "Push Notifications permission denied.", Toast.LENGTH_SHORT).show();
+                        updateCleverTapPushSubscription(false); // Optionally update if denied
                     }
                 });
 
@@ -82,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
             buttonRecordTestEvent.setOnClickListener(v -> recordTestEvent());
         }
 
-        // Set OnClickListener for the "Request Push Permission" button
         if (buttonRequestPushPermission != null) {
             buttonRequestPushPermission.setOnClickListener(v -> requestPushNotificationPermission());
         }
@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             if (!phone.isEmpty()) profileUpdate.put("Phone", phone);
             profileUpdate.put("UserType", "New Hire");
             profileUpdate.put("Status", "Active");
-            profileUpdate.put("MSG-push", true);          // Enable push notifications
+            // REMOVED: profileUpdate.put("MSG-push", true); from here
             clevertapDefaultInstance.onUserLogin(profileUpdate);
             Toast.makeText(this, "Login Profile Pushed", Toast.LENGTH_LONG).show();
             System.out.println("CleverTap: Login Profile Pushed: " + profileUpdate.toString());
@@ -146,27 +146,35 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // New method to handle Push Notification permission request
     private void requestPushNotificationPermission() {
-        // This is only necessary for API level 33+ (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
                     PackageManager.PERMISSION_GRANTED) {
-                // Permission is already granted
                 Toast.makeText(this, "Push Notifications permission already granted.", Toast.LENGTH_SHORT).show();
+                updateCleverTapPushSubscription(true); // Update CleverTap profile if already granted
             } else if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
-                // TODO: Explain to the user why your app needs the permission.
-                // Then, request the permission.
-                // For this assignment, we'll directly request.
                 Toast.makeText(this, "Please grant notification permission to receive updates.", Toast.LENGTH_LONG).show();
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
             } else {
-                // Directly request for the permission
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
             }
         } else {
-            // Push notification permission is not required for pre-Android 13 devices
-            Toast.makeText(this, "Push Notifications permission not required for this Android version.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Push Notifications permission not required for this Android version. Assuming subscribed.", Toast.LENGTH_LONG).show();
+            // For pre-Tiramisu, permission is granted by default at install time.
+            // So, we can consider them subscribed if they haven't explicitly unsubscribed via other means.
+            updateCleverTapPushSubscription(true);
+        }
+    }
+
+    // New method to update CleverTap profile for push subscription
+    private void updateCleverTapPushSubscription(boolean subscribed) {
+        if (clevertapDefaultInstance != null) {
+            HashMap<String, Object> profileUpdate = new HashMap<>();
+            profileUpdate.put("MSG-push", subscribed);
+            clevertapDefaultInstance.pushProfile(profileUpdate);
+            Log.d("MainActivity", "CleverTap profile updated with MSG-push: " + subscribed);
+        } else {
+            Log.w("MainActivity", "CleverTap instance is null. Cannot update MSG-push status.");
         }
     }
 }
