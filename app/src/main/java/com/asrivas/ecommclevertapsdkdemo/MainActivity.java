@@ -30,7 +30,8 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonLogin;
     private Button buttonRecordTestEvent;
     private Button buttonRequestPushPermission;
-    private Button buttonTriggerInApp; // Declare the new button
+    private Button buttonTriggerInApp;
+    private Button buttonOpenAppInbox;
 
     private ActivityResultLauncher<String> requestPermissionLauncher;
 
@@ -46,13 +47,19 @@ public class MainActivity extends AppCompatActivity {
             System.err.println("CleverTap Initialization error: " + e.getMessage());
         }
 
+        if (clevertapDefaultInstance != null) {
+            clevertapDefaultInstance.initializeInbox();
+            Log.d("MainActivity", "CleverTap App Inbox initialization called.");
+        }
+
         editTextName = findViewById(R.id.editTextName);
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPhone = findViewById(R.id.editTextPhone);
         buttonLogin = findViewById(R.id.buttonLogin);
         buttonRecordTestEvent = findViewById(R.id.buttonRecordTestEvent);
         buttonRequestPushPermission = findViewById(R.id.buttonRequestPushPermission);
-        buttonTriggerInApp = findViewById(R.id.buttonTriggerInApp); // Initialize the new button
+        buttonTriggerInApp = findViewById(R.id.buttonTriggerInApp);
+        buttonOpenAppInbox = findViewById(R.id.buttonOpenAppInbox);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -76,18 +83,17 @@ public class MainActivity extends AppCompatActivity {
         if (buttonLogin != null) {
             buttonLogin.setOnClickListener(v -> loginUser());
         }
-
         if (buttonRecordTestEvent != null) {
             buttonRecordTestEvent.setOnClickListener(v -> recordTestEvent());
         }
-
         if (buttonRequestPushPermission != null) {
             buttonRequestPushPermission.setOnClickListener(v -> requestPushNotificationPermission());
         }
-
-        // Set OnClickListener for the new "Trigger In-App Event" button
         if (buttonTriggerInApp != null) {
             buttonTriggerInApp.setOnClickListener(v -> triggerInAppEvent());
+        }
+        if (buttonOpenAppInbox != null) {
+            buttonOpenAppInbox.setOnClickListener(v -> openAppInbox());
         }
     }
 
@@ -98,9 +104,9 @@ public class MainActivity extends AppCompatActivity {
             String sdkVersion = "1.0";
             appLaunchedProperties.put("SDK Version", sdkVersion);
             clevertapDefaultInstance.pushEvent("App Launched", appLaunchedProperties);
-            System.out.println("CleverTap: Pushed 'App Launched' event with SDK Version: " + sdkVersion);
+            Log.d("MainActivity", "CleverTap: Pushed 'App Launched' event with SDK Version: " + sdkVersion);
         } else {
-            System.out.println("CleverTap: Default instance is null, cannot push 'App Launched' event.");
+            Log.w("MainActivity", "CleverTap: Default instance is null, cannot push 'App Launched' event.");
         }
     }
 
@@ -128,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
             profileUpdate.put("Status", "Active");
             clevertapDefaultInstance.onUserLogin(profileUpdate);
             Toast.makeText(this, "Login Profile Pushed", Toast.LENGTH_LONG).show();
-            System.out.println("CleverTap: Login Profile Pushed: " + profileUpdate.toString());
+            Log.d("MainActivity", "CleverTap: Login Profile Pushed: " + profileUpdate.toString());
         } else {
             Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
         }
@@ -142,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
             testEventProperties.put("PaymentMethod", "COD");
             clevertapDefaultInstance.pushEvent("Test Event Clicked", testEventProperties);
             Toast.makeText(this, "Test Event Recorded", Toast.LENGTH_LONG).show();
-            System.out.println("CleverTap: Pushed 'Test Event Clicked': " + testEventProperties.toString());
+            Log.d("MainActivity", "CleverTap: Pushed 'Test Event Clicked': " + testEventProperties.toString());
         } else {
             Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
         }
@@ -177,19 +183,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // New method to handle "Trigger In-App Event"
     private void triggerInAppEvent() {
         if (clevertapDefaultInstance != null) {
-            // Raise an event named "ShowInApp" as per PDF
-            // This event does not have properties specified in the PDF for this particular trigger
             clevertapDefaultInstance.pushEvent("ShowInApp");
-
-            // Feedback (not specified in PDF, but good for testing)
             Toast.makeText(this, "'ShowInApp' event triggered", Toast.LENGTH_LONG).show();
-            System.out.println("CleverTap: Pushed 'ShowInApp' event.");
+            Log.d("MainActivity", "CleverTap: Pushed 'ShowInApp' event.");
         } else {
             Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
-            System.out.println("CleverTap: Default instance is null, cannot push 'ShowInApp' event.");
+        }
+    }
+
+    private void openAppInbox() {
+        if (clevertapDefaultInstance != null) {
+            // Try calling showAppInbox() without any arguments.
+            // This relies on the SDK to use the application context or determine the current activity.
+            // This was also suggested as an option in the PDF you provided for default styling.
+            clevertapDefaultInstance.showAppInbox();
+            Log.d("MainActivity", "Attempting to show App Inbox with no arguments.");
+        } else {
+            Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
+            Log.w("MainActivity", "CleverTap: Default instance is null, cannot open App Inbox.");
         }
     }
 }
