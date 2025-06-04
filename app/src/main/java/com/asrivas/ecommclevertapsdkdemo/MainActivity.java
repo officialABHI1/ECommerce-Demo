@@ -123,6 +123,7 @@ public class MainActivity extends AppCompatActivity {
             if (!phone.isEmpty()) profileUpdate.put("Phone", phone);
             profileUpdate.put("UserType", "New Hire");
             profileUpdate.put("Status", "Active");
+            profileUpdate.put("MSG-push", true);          // Enable push notifications
             clevertapDefaultInstance.onUserLogin(profileUpdate);
             Toast.makeText(this, "Login Profile Pushed", Toast.LENGTH_LONG).show();
             System.out.println("CleverTap: Login Profile Pushed: " + profileUpdate.toString());
