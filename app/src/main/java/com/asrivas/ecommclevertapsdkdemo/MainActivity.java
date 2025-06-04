@@ -26,12 +26,13 @@ import java.util.HashMap;
 public class MainActivity extends AppCompatActivity {
 
     private CleverTapAPI clevertapDefaultInstance;
-    private EditText editTextName, editTextEmail, editTextPhone;
+    private EditText editTextName, editTextEmail, editTextPhone, editTextGender; // Changed from editTextFavoriteColor
     private Button buttonLogin;
     private Button buttonRecordTestEvent;
     private Button buttonRequestPushPermission;
     private Button buttonTriggerInApp;
     private Button buttonOpenAppInbox;
+    private Button buttonUpdateProfile;
 
     private ActivityResultLauncher<String> requestPermissionLauncher;
 
@@ -52,14 +53,18 @@ public class MainActivity extends AppCompatActivity {
             Log.d("MainActivity", "CleverTap App Inbox initialization called.");
         }
 
+        // Initialize UI elements
         editTextName = findViewById(R.id.editTextName);
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPhone = findViewById(R.id.editTextPhone);
+        editTextGender = findViewById(R.id.editTextGender); // Initialize new EditText for Gender
         buttonLogin = findViewById(R.id.buttonLogin);
+        buttonUpdateProfile = findViewById(R.id.buttonUpdateProfile); // Ensure this ID matches XML
         buttonRecordTestEvent = findViewById(R.id.buttonRecordTestEvent);
         buttonRequestPushPermission = findViewById(R.id.buttonRequestPushPermission);
         buttonTriggerInApp = findViewById(R.id.buttonTriggerInApp);
         buttonOpenAppInbox = findViewById(R.id.buttonOpenAppInbox);
+
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -80,8 +85,12 @@ public class MainActivity extends AppCompatActivity {
 
         pushAppLaunchedEvent();
 
+        // Set OnClickListeners
         if (buttonLogin != null) {
             buttonLogin.setOnClickListener(v -> loginUser());
+        }
+        if (buttonUpdateProfile != null) { // Listener for Update Profile button
+            buttonUpdateProfile.setOnClickListener(v -> updateGenderProfileProperty());
         }
         if (buttonRecordTestEvent != null) {
             buttonRecordTestEvent.setOnClickListener(v -> recordTestEvent());
@@ -140,7 +149,35 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Renamed method and updated logic for Gender
+    private void updateGenderProfileProperty() {
+        if (editTextGender == null) {
+            Toast.makeText(this, "Gender field not initialized.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String gender = editTextGender.getText().toString().trim();
+
+        if (gender.isEmpty()) {
+            Toast.makeText(this, "Please enter your gender.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (clevertapDefaultInstance != null) {
+            HashMap<String, Object> profileUpdate = new HashMap<>();
+            profileUpdate.put("Gender", gender); // Changed property key to "Gender"
+
+            clevertapDefaultInstance.pushProfile(profileUpdate);
+
+            Toast.makeText(this, "Profile Updated with Gender", Toast.LENGTH_LONG).show(); // Updated Toast message
+            Log.d("MainActivity", "CleverTap: Profile updated with Gender: " + gender);
+        } else {
+            Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
+            Log.w("MainActivity", "CleverTap: Default instance is null. Cannot update Gender.");
+        }
+    }
+
     private void recordTestEvent() {
+        // ... (rest of the methods remain the same as before) ...
         if (clevertapDefaultInstance != null) {
             HashMap<String, Object> testEventProperties = new HashMap<>();
             testEventProperties.put("Source", "Onboarding App");
@@ -195,9 +232,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void openAppInbox() {
         if (clevertapDefaultInstance != null) {
-            // Try calling showAppInbox() without any arguments.
-            // This relies on the SDK to use the application context or determine the current activity.
-            // This was also suggested as an option in the PDF you provided for default styling.
             clevertapDefaultInstance.showAppInbox();
             Log.d("MainActivity", "Attempting to show App Inbox with no arguments.");
         } else {
