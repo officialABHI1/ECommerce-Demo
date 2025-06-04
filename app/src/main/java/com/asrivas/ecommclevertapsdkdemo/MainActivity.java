@@ -1,13 +1,18 @@
 package com.asrivas.ecommclevertapsdkdemo;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -19,20 +24,28 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.bumptech.glide.Glide;
 import com.clevertap.android.sdk.CleverTapAPI;
+import com.clevertap.android.sdk.displayunits.DisplayUnitListener;
+import com.clevertap.android.sdk.displayunits.model.CleverTapDisplayUnit;
+import com.clevertap.android.sdk.displayunits.model.CleverTapDisplayUnitContent;
 
+
+import java.util.ArrayList;
 import java.util.HashMap;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements DisplayUnitListener {
 
     private CleverTapAPI clevertapDefaultInstance;
-    private EditText editTextName, editTextEmail, editTextPhone, editTextGender; // Changed from editTextFavoriteColor
-    private Button buttonLogin;
-    private Button buttonRecordTestEvent;
-    private Button buttonRequestPushPermission;
-    private Button buttonTriggerInApp;
-    private Button buttonOpenAppInbox;
-    private Button buttonUpdateProfile;
+    private EditText editTextName, editTextEmail, editTextPhone, editTextGender;
+    private Button buttonLogin, buttonRecordTestEvent, buttonRequestPushPermission;
+    private Button buttonTriggerInApp, buttonOpenAppInbox, buttonUpdateProfile;
+    private Button buttonLoadNativeAd;
+
+    private LinearLayout nativeDisplayContainer;
+    private ImageView nativeImageView;
+    private TextView nativeTitleTextView;
+    private TextView nativeMessageTextView;
 
     private ActivityResultLauncher<String> requestPermissionLauncher;
 
@@ -50,20 +63,26 @@ public class MainActivity extends AppCompatActivity {
 
         if (clevertapDefaultInstance != null) {
             clevertapDefaultInstance.initializeInbox();
-            Log.d("MainActivity", "CleverTap App Inbox initialization called.");
+            clevertapDefaultInstance.setDisplayUnitListener(this); // Register listener for Native Display
+            Log.d("MainActivity", "CleverTap App Inbox initialized & Native Display listener registered.");
         }
 
-        // Initialize UI elements
         editTextName = findViewById(R.id.editTextName);
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPhone = findViewById(R.id.editTextPhone);
-        editTextGender = findViewById(R.id.editTextGender); // Initialize new EditText for Gender
+        editTextGender = findViewById(R.id.editTextGender);
         buttonLogin = findViewById(R.id.buttonLogin);
-        buttonUpdateProfile = findViewById(R.id.buttonUpdateProfile); // Ensure this ID matches XML
+        buttonUpdateProfile = findViewById(R.id.buttonUpdateProfile);
         buttonRecordTestEvent = findViewById(R.id.buttonRecordTestEvent);
         buttonRequestPushPermission = findViewById(R.id.buttonRequestPushPermission);
         buttonTriggerInApp = findViewById(R.id.buttonTriggerInApp);
         buttonOpenAppInbox = findViewById(R.id.buttonOpenAppInbox);
+
+        nativeDisplayContainer = findViewById(R.id.nativeDisplayContainer);
+        nativeImageView = findViewById(R.id.nativeImageView);
+        nativeTitleTextView = findViewById(R.id.nativeTitleTextView);
+        nativeMessageTextView = findViewById(R.id.nativeMessageTextView);
+        buttonLoadNativeAd = findViewById(R.id.buttonLoadNativeAd);
 
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -85,27 +104,82 @@ public class MainActivity extends AppCompatActivity {
 
         pushAppLaunchedEvent();
 
-        // Set OnClickListeners
-        if (buttonLogin != null) {
-            buttonLogin.setOnClickListener(v -> loginUser());
+        if (buttonLogin != null) buttonLogin.setOnClickListener(v -> loginUser());
+        if (buttonUpdateProfile != null) buttonUpdateProfile.setOnClickListener(v -> updateGenderProfileProperty());
+        if (buttonRecordTestEvent != null) buttonRecordTestEvent.setOnClickListener(v -> recordTestEvent());
+        if (buttonRequestPushPermission != null) buttonRequestPushPermission.setOnClickListener(v -> requestPushNotificationPermission());
+        if (buttonTriggerInApp != null) buttonTriggerInApp.setOnClickListener(v -> triggerInAppEvent());
+        if (buttonOpenAppInbox != null) buttonOpenAppInbox.setOnClickListener(v -> openAppInbox());
+        if (buttonLoadNativeAd != null) buttonLoadNativeAd.setOnClickListener(v -> loadNativeDisplayUnit());
+    }
+
+    @Override
+    public void onDisplayUnitsLoaded(ArrayList<CleverTapDisplayUnit> units) {
+        Log.d("MainActivity", "Native Display Units Loaded: " + units.size());
+        if (units.isEmpty()) {
+            Toast.makeText(this, "No Native Display units found for the trigger event.", Toast.LENGTH_SHORT).show();
+            if (nativeDisplayContainer != null) nativeDisplayContainer.setVisibility(View.GONE);
+            return;
         }
-        if (buttonUpdateProfile != null) { // Listener for Update Profile button
-            buttonUpdateProfile.setOnClickListener(v -> updateGenderProfileProperty());
-        }
-        if (buttonRecordTestEvent != null) {
-            buttonRecordTestEvent.setOnClickListener(v -> recordTestEvent());
-        }
-        if (buttonRequestPushPermission != null) {
-            buttonRequestPushPermission.setOnClickListener(v -> requestPushNotificationPermission());
-        }
-        if (buttonTriggerInApp != null) {
-            buttonTriggerInApp.setOnClickListener(v -> triggerInAppEvent());
-        }
-        if (buttonOpenAppInbox != null) {
-            buttonOpenAppInbox.setOnClickListener(v -> openAppInbox());
+
+        final CleverTapDisplayUnit unit = units.get(0); // Using the first available unit
+
+        if (unit.getContents() != null && !unit.getContents().isEmpty()) {
+            CleverTapDisplayUnitContent content = unit.getContents().get(0);
+
+            String title = content.getTitle();
+            String message = content.getMessage();
+            String imageUrl = content.getMedia();
+
+            if (nativeTitleTextView != null) nativeTitleTextView.setText(title);
+            if (nativeMessageTextView != null) nativeMessageTextView.setText(message);
+
+            if (nativeImageView != null && imageUrl != null && !imageUrl.isEmpty()) {
+                Glide.with(this).load(imageUrl).into(nativeImageView);
+            }
+
+            if (nativeDisplayContainer != null) {
+                nativeDisplayContainer.setVisibility(View.VISIBLE);
+                nativeDisplayContainer.setOnClickListener(view -> {
+                    if (clevertapDefaultInstance != null) {
+                        clevertapDefaultInstance.pushDisplayUnitClickedEventForID(unit.getUnitID());
+                        Log.d("MainActivity", "Native Display Unit Clicked: " + unit.getUnitID());
+                        Toast.makeText(MainActivity.this, "Native Ad Clicked!", Toast.LENGTH_SHORT).show();
+                    }
+                    // Handle deep link if available from content.getActionUrl() or unit.getCustomExtras()
+                });
+            }
+
+            if (clevertapDefaultInstance != null) {
+                clevertapDefaultInstance.pushDisplayUnitViewedEventForID(unit.getUnitID());
+                Log.d("MainActivity", "Native Display Unit Viewed: " + unit.getUnitID());
+            }
+
+        } else {
+            Log.w("MainActivity", "Native Display unit content is empty.");
+            if (nativeDisplayContainer != null) nativeDisplayContainer.setVisibility(View.GONE);
         }
     }
 
+    // Method called when "Load Native Ad" button is clicked
+    private void loadNativeDisplayUnit() {
+        if (clevertapDefaultInstance != null) {
+            // Push a custom event that can be used to trigger the Native Display campaign
+            clevertapDefaultInstance.pushEvent("LoadNativeAdClicked");
+            Log.d("MainActivity", "Pushed 'LoadNativeAdClicked' event.");
+            Toast.makeText(this, "Triggered event for Native Display...", Toast.LENGTH_SHORT).show();
+
+            // The SDK will fetch display units based on campaigns triggered by this event (or other triggers).
+            // The onDisplayUnitsLoaded callback will be invoked if units are available.
+            // Calling getAllDisplayUnits() here can also prompt a refresh if needed,
+            // but the event trigger is the primary mechanism for campaign delivery.
+            // clevertapDefaultInstance.getAllDisplayUnits(); // You can keep or remove this based on observed behavior
+        } else {
+            Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // --- Other methods (pushAppLaunchedEvent, loginUser, etc. remain unchanged) ---
     private void pushAppLaunchedEvent() {
         if (clevertapDefaultInstance != null) {
             HashMap<String, Object> appLaunchedProperties = new HashMap<>();
@@ -149,7 +223,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Renamed method and updated logic for Gender
     private void updateGenderProfileProperty() {
         if (editTextGender == null) {
             Toast.makeText(this, "Gender field not initialized.", Toast.LENGTH_SHORT).show();
@@ -164,11 +237,11 @@ public class MainActivity extends AppCompatActivity {
 
         if (clevertapDefaultInstance != null) {
             HashMap<String, Object> profileUpdate = new HashMap<>();
-            profileUpdate.put("Gender", gender); // Changed property key to "Gender"
+            profileUpdate.put("Gender", gender);
 
             clevertapDefaultInstance.pushProfile(profileUpdate);
 
-            Toast.makeText(this, "Profile Updated with Gender", Toast.LENGTH_LONG).show(); // Updated Toast message
+            Toast.makeText(this, "Profile Updated with Gender", Toast.LENGTH_LONG).show();
             Log.d("MainActivity", "CleverTap: Profile updated with Gender: " + gender);
         } else {
             Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
@@ -177,7 +250,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void recordTestEvent() {
-        // ... (rest of the methods remain the same as before) ...
         if (clevertapDefaultInstance != null) {
             HashMap<String, Object> testEventProperties = new HashMap<>();
             testEventProperties.put("Source", "Onboarding App");
