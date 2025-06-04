@@ -33,6 +33,7 @@ import com.clevertap.android.sdk.displayunits.model.CleverTapDisplayUnitContent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map; // Import Map for item details
 
 public class MainActivity extends AppCompatActivity implements DisplayUnitListener {
 
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
     private Button buttonLogin, buttonRecordTestEvent, buttonRequestPushPermission;
     private Button buttonTriggerInApp, buttonOpenAppInbox, buttonUpdateProfile;
     private Button buttonLoadNativeAd;
+    private Button buttonTriggerChargedEvent; // Declare new button
 
     private LinearLayout nativeDisplayContainer;
     private ImageView nativeImageView;
@@ -63,10 +65,11 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
 
         if (clevertapDefaultInstance != null) {
             clevertapDefaultInstance.initializeInbox();
-            clevertapDefaultInstance.setDisplayUnitListener(this); // Register listener for Native Display
+            clevertapDefaultInstance.setDisplayUnitListener(this);
             Log.d("MainActivity", "CleverTap App Inbox initialized & Native Display listener registered.");
         }
 
+        // Initialize UI elements
         editTextName = findViewById(R.id.editTextName);
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPhone = findViewById(R.id.editTextPhone);
@@ -83,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
         nativeTitleTextView = findViewById(R.id.nativeTitleTextView);
         nativeMessageTextView = findViewById(R.id.nativeMessageTextView);
         buttonLoadNativeAd = findViewById(R.id.buttonLoadNativeAd);
+        buttonTriggerChargedEvent = findViewById(R.id.buttonTriggerChargedEvent); // Initialize new button
 
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -104,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
 
         pushAppLaunchedEvent();
 
+        // Set OnClickListeners
         if (buttonLogin != null) buttonLogin.setOnClickListener(v -> loginUser());
         if (buttonUpdateProfile != null) buttonUpdateProfile.setOnClickListener(v -> updateGenderProfileProperty());
         if (buttonRecordTestEvent != null) buttonRecordTestEvent.setOnClickListener(v -> recordTestEvent());
@@ -111,6 +116,9 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
         if (buttonTriggerInApp != null) buttonTriggerInApp.setOnClickListener(v -> triggerInAppEvent());
         if (buttonOpenAppInbox != null) buttonOpenAppInbox.setOnClickListener(v -> openAppInbox());
         if (buttonLoadNativeAd != null) buttonLoadNativeAd.setOnClickListener(v -> loadNativeDisplayUnit());
+        if (buttonTriggerChargedEvent != null) { // Listener for Charged Event button
+            buttonTriggerChargedEvent.setOnClickListener(v -> triggerChargedEvent());
+        }
     }
 
     @Override
@@ -122,18 +130,16 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
             return;
         }
 
-        final CleverTapDisplayUnit unit = units.get(0); // Using the first available unit
+        final CleverTapDisplayUnit unit = units.get(0);
 
         if (unit.getContents() != null && !unit.getContents().isEmpty()) {
             CleverTapDisplayUnitContent content = unit.getContents().get(0);
-
             String title = content.getTitle();
             String message = content.getMessage();
             String imageUrl = content.getMedia();
 
             if (nativeTitleTextView != null) nativeTitleTextView.setText(title);
             if (nativeMessageTextView != null) nativeMessageTextView.setText(message);
-
             if (nativeImageView != null && imageUrl != null && !imageUrl.isEmpty()) {
                 Glide.with(this).load(imageUrl).into(nativeImageView);
             }
@@ -146,7 +152,6 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
                         Log.d("MainActivity", "Native Display Unit Clicked: " + unit.getUnitID());
                         Toast.makeText(MainActivity.this, "Native Ad Clicked!", Toast.LENGTH_SHORT).show();
                     }
-                    // Handle deep link if available from content.getActionUrl() or unit.getCustomExtras()
                 });
             }
 
@@ -154,32 +159,64 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
                 clevertapDefaultInstance.pushDisplayUnitViewedEventForID(unit.getUnitID());
                 Log.d("MainActivity", "Native Display Unit Viewed: " + unit.getUnitID());
             }
-
         } else {
             Log.w("MainActivity", "Native Display unit content is empty.");
             if (nativeDisplayContainer != null) nativeDisplayContainer.setVisibility(View.GONE);
         }
     }
 
-    // Method called when "Load Native Ad" button is clicked
     private void loadNativeDisplayUnit() {
         if (clevertapDefaultInstance != null) {
-            // Push a custom event that can be used to trigger the Native Display campaign
             clevertapDefaultInstance.pushEvent("LoadNativeAdClicked");
             Log.d("MainActivity", "Pushed 'LoadNativeAdClicked' event.");
             Toast.makeText(this, "Triggered event for Native Display...", Toast.LENGTH_SHORT).show();
-
-            // The SDK will fetch display units based on campaigns triggered by this event (or other triggers).
-            // The onDisplayUnitsLoaded callback will be invoked if units are available.
-            // Calling getAllDisplayUnits() here can also prompt a refresh if needed,
-            // but the event trigger is the primary mechanism for campaign delivery.
-            // clevertapDefaultInstance.getAllDisplayUnits(); // You can keep or remove this based on observed behavior
         } else {
             Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // --- Other methods (pushAppLaunchedEvent, loginUser, etc. remain unchanged) ---
+    // New method to trigger a "Charged" event
+    private void triggerChargedEvent() {
+        if (clevertapDefaultInstance != null) {
+            // Create a list of purchased items
+            ArrayList<Map<String, Object>> items = new ArrayList<>();
+
+            // Item 1
+            HashMap<String, Object> item1 = new HashMap<>();
+            item1.put("Category", "Electronics");
+            item1.put("ProductName", "Wireless Headphones");
+            item1.put("Quantity", 1);
+            item1.put("Price", 79.99); // Using double for price
+            items.add(item1);
+
+            // Item 2
+            HashMap<String, Object> item2 = new HashMap<>();
+            item2.put("Category", "Books");
+            item2.put("ProductName", "Sci-Fi Novel");
+            item2.put("Quantity", 2);
+            item2.put("Price", 12.50);
+            items.add(item2);
+
+            // Prepare event properties
+            HashMap<String, Object> chargedEventProperties = new HashMap<>();
+            chargedEventProperties.put("Amount", 104.99); // Total amount: 79.99 + (12.50 * 2) = 104.99
+            chargedEventProperties.put("PaymentMode", "Credit Card");
+            chargedEventProperties.put("ChargedID", "TRX_" + System.currentTimeMillis()); // Example transaction ID
+            chargedEventProperties.put("Items", items); // Add the list of items
+
+            // Push the "Charged" event
+            clevertapDefaultInstance.pushEvent("Charged", chargedEventProperties);
+
+            Toast.makeText(this, "'Charged' event triggered", Toast.LENGTH_LONG).show();
+            Log.d("MainActivity", "CleverTap: Pushed 'Charged' event with properties: " + chargedEventProperties.toString());
+        } else {
+            Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
+            Log.w("MainActivity", "CleverTap: Default instance is null. Cannot push 'Charged' event.");
+        }
+    }
+
+
+    // --- Other existing methods (pushAppLaunchedEvent, loginUser, etc.) ---
     private void pushAppLaunchedEvent() {
         if (clevertapDefaultInstance != null) {
             HashMap<String, Object> appLaunchedProperties = new HashMap<>();
