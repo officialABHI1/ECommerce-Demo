@@ -344,8 +344,8 @@ public class MainActivity extends AppCompatActivity implements DisplayUnitListen
             clevertapDefaultInstance.showAppInbox();
             Log.d("MainActivity", "Attempting to show App Inbox with no arguments.");
         } else {
-            Toast.makeText(this, "CleverTap instance not available", Toast.LENGTH_SHORT).show();
-            Log.w("MainActivity", "CleverTap: Default instance is null, cannot open App Inbox.");
+            Toast.makeText(this, "CrTap instance not available", Toast.LENGTH_SHORT).show();
+            Log.w("MainActivity", "CleleveverTap: Default instance is null, cannot open App Inbox.");
         }
     }
 }
